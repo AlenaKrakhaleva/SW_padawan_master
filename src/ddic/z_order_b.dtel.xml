@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DTEL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD04V>
+    <ROLLNAME>Z_ORDER_B</ROLLNAME>
+    <DDLANGUAGE>E</DDLANGUAGE>
+    <DOMNAME>Z_ORDER</DOMNAME>
+    <HEADLEN>20</HEADLEN>
+    <SCRLEN1>05</SCRLEN1>
+    <SCRLEN2>13</SCRLEN2>
+    <SCRLEN3>20</SCRLEN3>
+    <DDTEXT>Best Star Wars order</DDTEXT>
+    <REPTEXT>Best Star Wars order</REPTEXT>
+    <SCRTEXT_S>Order</SCRTEXT_S>
+    <SCRTEXT_M>Order Best SW</SCRTEXT_M>
+    <SCRTEXT_L>Best Star Wars order</SCRTEXT_L>
+    <DTELMASTER>E</DTELMASTER>
+    <REFKIND>D</REFKIND>
+   </DD04V>
+  </asx:values>
+ </asx:abap>
+</abapGit>
