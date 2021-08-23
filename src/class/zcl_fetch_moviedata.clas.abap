@@ -12,13 +12,30 @@ public section.
 protected section.
 private section.
 
+  types:
+    BEGIN OF ty_moviedata,
+      custmovieid TYPE string,
+      filmname    TYPE string,
+      episode     TYPE string,
+      swdate      TYPE string,
+      headname    TYPE string,
+      revenue     TYPE string,
+    END OF ty_moviedata .
+  types:
+    tty_moviedata TYPE STANDARD TABLE OF ty_moviedata WITH NON-UNIQUE KEY custmovieid .
+
   data MV_LOCATION type ZSW_DATALOCATION .
   data MR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT .
   constants MC_LOCATION_LOCAL type ZSW_DATALOCATION value 'L' ##NO_TEXT.
   constants MC_LOCATION_SERVER type ZSW_DATALOCATION value 'S' ##NO_TEXT.
-  constants MC_LOCALMOVIEDATA type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_excel.xlsx' ##NO_TEXT.
+  constants MC_LOCALMOVIEDATA type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_excel.csv' ##NO_TEXT.
   constants MC_SERVERMOVIEDATA type STRING value 'NA' ##NO_TEXT.
+  data MT_MOVIEDATA type TTY_MOVIEDATA .
 
+  methods GET_NEXT_ID
+    returning
+      value(RETURN) type Z_MOVIEID .
+  methods ITAB2_DDIC_MOVIEDATA .
   methods CONVERSION_BIN2XSTRING
     importing
       !IV_FILELENGTH type I
@@ -28,10 +45,8 @@ private section.
   methods DATA_UPLOAD
     importing
       !IV_FILENAME type STRING
-    exporting
-      !IT_RECORDS type SOLIX_TAB
     returning
-      value(IV_FILELENGTH) type I .
+      value(RETURN) type STRING_TABLE .
   methods XSTRING_2_ITAB
     importing
       !IV_HEADERXSTRING type XSTRING
@@ -79,15 +94,18 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   endmethod.
 
 
-  method DATA_UPLOAD.
-        CALL FUNCTION 'GUI_UPLOAD'
+  METHOD data_upload.
+
+    DATA lt_records TYPE string_table.
+
+    CALL FUNCTION 'GUI_UPLOAD'
       EXPORTING
         filename                = iv_filename
-        filetype                = 'BIN'
-      IMPORTING
-        filelength              = iv_filelength
+        filetype                = 'ASC'
+*      IMPORTING
+*       filelength              = iv_filelength
       TABLES
-        data_tab                = it_records
+        data_tab                = lt_records
       EXCEPTIONS
         file_open_error         = 1
         file_read_error         = 2
@@ -108,8 +126,12 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
         OTHERS                  = 17.
     IF sy-subrc <> 0.
 * Implement suitable error handling here
+    ELSE.
+      IF lt_records IS NOT INITIAL.
+        Return = lt_records.
+      ENDIF.
     ENDIF.
-  endmethod.
+  ENDMETHOD.
 
 
   method FETCH_MOVIECHARACTER_EXL.
@@ -118,10 +140,7 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
 
   METHOD fetch_moviedata_exl.
 
-    DATA lv_filelength TYPE i.
-    DATA lt_records TYPE solix_tab.
-    DATA lv_headerxstring TYPE xstring.
-
+    DATA lt_records TYPE string_table.
 
     me->mv_location = me->location_determination( ).
     CASE me->mv_location.
@@ -131,60 +150,100 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
         lv_filename = me->mc_servermoviedata.
     ENDCASE.
 
-    lv_filelength = me->data_upload(
-                      EXPORTING
-                        iv_filename = lv_filename
-                     IMPORTING
-                        it_records  = lt_records               " GBT: SOLIX as Table Type
-                    ).
+    lt_records = me->data_upload( iv_filename = lv_filename ).
 
-*    CALL FUNCTION 'GUI_UPLOAD'
-*      EXPORTING
-*        filename                = lv_filename
-*        filetype                = 'BIN'
-*      IMPORTING
-*        filelength              = lv_filelength
-*      TABLES
-*        data_tab                = lt_records
-*      EXCEPTIONS
-*        file_open_error         = 1
-*        file_read_error         = 2
-*        no_batch                = 3
-*        gui_refuse_filetransfer = 4
-*        invalid_type            = 5
-*        no_authority            = 6
-*        unknown_error           = 7
-*        bad_data_format         = 8
-*        header_not_allowed      = 9
-*        separator_not_allowed   = 10
-*        header_too_long         = 11
-*        unknown_dp_error        = 12
-*        access_denied           = 13
-*        dp_out_of_memory        = 14
-*        disk_full               = 15
-*        dp_timeout              = 16
-*        OTHERS                  = 17.
-*    IF sy-subrc <> 0.
-** Implement suitable error handling here
-*    ENDIF.
-    lv_headerxstring = me->conversion_bin2xstring(
-                         iv_filelength = lv_filelength
-                         it_records    = lt_records
-                       ).
+    DATA ls_moviedata TYPE ty_moviedata.
+    DATA lt_moviedata TYPE tty_moviedata.
 
-*    me->xstring_2_itab(
-*      EXPORTING
-*        iv_headerxstring = lv_headerxstring
-*        iv_filename      = lv_filename
-*      IMPORTING
-*        et_table         = <table>
-*    ).
+    LOOP AT lt_records
+      INTO DATA(wa_records)
+   FROM 2.
+      SPLIT wa_records AT ';' INTO:
+      ls_moviedata-custmovieid
+      ls_moviedata-filmname
+      ls_moviedata-episode
+      ls_moviedata-swdate
+      ls_moviedata-headname
+      ls_moviedata-revenue.
+
+      APPEND ls_moviedata TO me->mt_moviedata.
+
+      CLEAR ls_moviedata.
+
+    ENDLOOP.
+
+    IF me->mt_moviedata IS NOT INITIAL.
+
+      me->itab2_ddic_moviedata( ).
+
+    ENDIF.
 
   ENDMETHOD.
 
 
   method FETCH_MOVIEORDER_EXL.
   endmethod.
+
+
+  METHOD get_next_id.
+
+    DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '01'.
+    DATA lv_object              TYPE inri-object    VALUE 'ZSW_MOVIE'.
+    DATA lv_retcode             TYPE inri-returncode.
+    DATA lv_number TYPE nrLEVEL.
+
+    CALL FUNCTION 'NUMBER_GET_NEXT'
+      EXPORTING
+        nr_range_nr             = lv_nr_range_nr
+        object                  = lv_object
+*       QUANTITY                = '1'
+*       SUBOBJECT               = ' '
+*       TOYEAR                  = '0000'
+*       IGNORE_BUFFER           = ' '
+      IMPORTING
+        number                  = lv_number
+*       QUANTITY                =
+        returncode              = lv_retcode
+      EXCEPTIONS
+        interval_not_found      = 1
+        number_range_not_intern = 2
+        object_not_found        = 3
+        quantity_is_0           = 4
+        quantity_is_not_1       = 5
+        interval_overflow       = 6
+        buffer_overflow         = 7
+        OTHERS                  = 8.
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ELSE.
+      return = lv_number.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD itab2_ddic_moviedata.
+
+    DATA ls_movie TYPE zsw_movie.
+
+    LOOP AT me->mt_moviedata
+      INTO DATA(ls_moviedata).
+      MOVE-CORRESPONDING ls_moviedata TO ls_movie.
+      ls_movie-currency = 'ÚSD'.
+      ls_movie-movieid = me->get_next_id( ).
+
+      IF ls_movie-movieid IS NOT INITIAL.
+        INSERT zsw_movie FROM ls_movie.
+      ELSE.
+        "to do logging
+      ENDIF.
+      CLEAR ls_movie.
+
+    ENDLOOP.
+
+
+
+  ENDMETHOD.
 
 
   METHOD location_determination.
