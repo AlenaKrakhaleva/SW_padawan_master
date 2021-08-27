@@ -10,9 +10,9 @@ public section.
   methods FETCH_MOVIEDATA_EXL .
   methods START_APP .
 protected section.
-private section.
+PRIVATE SECTION.
 
-  types:
+  TYPES:
     BEGIN OF ty_moviedata,
       custmovieid TYPE string,
       filmname    TYPE string,
@@ -21,43 +21,63 @@ private section.
       headname    TYPE string,
       revenue     TYPE string,
     END OF ty_moviedata .
-  types:
+  TYPES:
     tty_moviedata TYPE STANDARD TABLE OF ty_moviedata WITH NON-UNIQUE KEY custmovieid .
 
-  data MV_LOCATION type ZSW_DATALOCATION .
-  data MR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT .
-  constants MC_LOCATION_LOCAL type ZSW_DATALOCATION value 'L' ##NO_TEXT.
-  constants MC_LOCATION_SERVER type ZSW_DATALOCATION value 'S' ##NO_TEXT.
-  constants MC_LOCALMOVIEDATA type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_excel.csv' ##NO_TEXT.
-  constants MC_SERVERMOVIEDATA type STRING value 'NA' ##NO_TEXT.
-  data MT_MOVIEDATA type TTY_MOVIEDATA .
+  TYPES:
+    BEGIN OF ty_movieorder,
+      custmovieid     TYPE string,
+      movieid         TYPE string,
+      filmname        TYPE string,
+      episode         TYPE string,
+      theatricalorder TYPE string,
+      chronorder      TYPE string,
+      bestsworder     TYPE string,
+    END OF ty_movieorder .
+  TYPES:
+    tty_movieorder TYPE STANDARD TABLE OF ty_movieorder WITH NON-UNIQUE KEY custmovieid .
 
-  methods GET_NEXT_ID
-    returning
-      value(RETURN) type Z_MOVIEID .
-  methods ITAB2_DDIC_MOVIEDATA .
-  methods CONVERSION_BIN2XSTRING
-    importing
-      !IV_FILELENGTH type I
-      !IT_RECORDS type SOLIX_TAB
-    returning
-      value(RETURN) type XSTRING .
-  methods DATA_UPLOAD
-    importing
-      !IV_FILENAME type STRING
-    returning
-      value(RETURN) type STRING_TABLE .
-  methods XSTRING_2_ITAB
-    importing
-      !IV_HEADERXSTRING type XSTRING
-      !IV_FILENAME type STRING
-    exporting
-      !ET_TABLE type TABLE .
-  methods FETCH_MOVIEORDER_EXL .
-  methods FETCH_MOVIECHARACTER_EXL .
-  methods LOCATION_DETERMINATION
-    returning
-      value(RETURN) type ZSW_DATALOCATION .
+  DATA mv_location TYPE zsw_datalocation .
+  DATA mr_input TYPE REF TO zcl_sw_uploaddata_input .
+  CONSTANTS mc_location_local TYPE zsw_datalocation VALUE 'L' ##NO_TEXT.
+  CONSTANTS mc_location_server TYPE zsw_datalocation VALUE 'S' ##NO_TEXT.
+  CONSTANTS mc_localmoviedata TYPE string VALUE 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_excel.csv' ##NO_TEXT.
+  CONSTANTS mc_servermoviedata TYPE string VALUE 'NA' ##NO_TEXT.
+  DATA mt_moviedata TYPE tty_moviedata .
+  CONSTANTS mc_localmovieorder TYPE string VALUE 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_order_excel.csv' ##NO_TEXT.
+  CONSTANTS mc_servermovieorder TYPE string VALUE 'NA' ##NO_TEXT.
+  DATA mt_movieorder TYPE tty_movieorder .
+
+  METHODS display_alv
+    CHANGING
+      !t_table TYPE table .
+  METHODS get_next_id
+    RETURNING
+      VALUE(return) TYPE z_movieid .
+  METHODS itab2_ddic_moviedata .
+  METHODS conversion_bin2xstring
+    IMPORTING
+      !iv_filelength TYPE i
+      !it_records    TYPE solix_tab
+    RETURNING
+      VALUE(return)  TYPE xstring .
+  METHODS data_upload
+    IMPORTING
+      !iv_filename  TYPE string
+    RETURNING
+      VALUE(return) TYPE string_table .
+  METHODS xstring_2_itab
+    IMPORTING
+      !iv_headerxstring TYPE xstring
+      !iv_filename      TYPE string
+    EXPORTING
+      !et_table         TYPE table .
+  METHODS fetch_movieorder_exl .
+  METHODS fetch_moviecharacter_exl .
+  METHODS location_determination
+    RETURNING
+      VALUE(return) TYPE zsw_datalocation .
+  METHODS itab2_ddic_movieorder .
 ENDCLASS.
 
 
@@ -134,6 +154,37 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
+  method DISPLAY_ALV.
+
+*    DATA gr_alvtable TYPE REF TO cl_salv_table.
+*    DATA message TYPE REF TO cx_salv_msg.
+*    TRY.
+*        cl_salv_table=>factory(
+*          IMPORTING
+*            r_salv_table = gr_alvtable
+*          CHANGING
+*            t_table      = me->mt_moviedata ).
+*      CATCH cx_salv_msg INTO message.
+*        " error handling
+*    ENDTRY.
+*    CALL METHOD gr_alvtable->display.
+
+    DATA gr_alvtable TYPE REF TO cl_salv_table.
+    DATA message TYPE REF TO cx_salv_msg.
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = gr_alvtable
+          CHANGING
+            t_table      = t_table ).
+      CATCH cx_salv_msg INTO message.
+        " error handling
+    ENDTRY.
+    CALL METHOD gr_alvtable->display.
+
+  endmethod.
+
+
   method FETCH_MOVIECHARACTER_EXL.
   endmethod.
 
@@ -178,19 +229,59 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
 
     ENDIF.
 
+
   ENDMETHOD.
 
 
-  method FETCH_MOVIEORDER_EXL.
-  endmethod.
+  METHOD fetch_movieorder_exl.
+
+    DATA lt_records TYPE string_table.
+
+    me->mv_location = me->location_determination( ).
+    CASE me->mv_location.
+      WHEN me->mc_location_local.
+        DATA(lv_filename) = me->mc_localmovieorder.
+      WHEN OTHERS.
+        lv_filename = me->mc_servermovieorder.
+    ENDCASE.
+
+    lt_records = me->data_upload( iv_filename = lv_filename ).
+
+    DATA ls_movieorder TYPE ty_movieorder.
+    DATA lt_movieorder TYPE tty_movieorder.
+
+    LOOP AT lt_records
+      INTO DATA(wa_records)
+   FROM 2.
+      SPLIT wa_records AT ';' INTO:
+      ls_movieorder-custmovieid
+      ls_movieorder-filmname
+      ls_movieorder-episode
+      ls_movieorder-theatricalorder
+      ls_movieorder-chronorder
+      ls_movieorder-bestsworder.
+
+      APPEND ls_movieorder TO me->mt_movieorder.
+
+      CLEAR ls_movieorder.
+
+    ENDLOOP.
+
+    IF me->mt_movieorder IS NOT INITIAL.
+
+      me->itab2_ddic_movieorder( ).
+
+    ENDIF.
+
+  ENDMETHOD.
 
 
   METHOD get_next_id.
 
-    DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '01'.
+    DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '1'.
     DATA lv_object              TYPE inri-object    VALUE 'ZSW_MOVIE'.
     DATA lv_retcode             TYPE inri-returncode.
-    DATA lv_number TYPE nrLEVEL.
+    DATA lv_number TYPE I.
 
     CALL FUNCTION 'NUMBER_GET_NEXT'
       EXPORTING
@@ -246,6 +337,41 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
+  method ITAB2_DDIC_MOVIEORDER.
+
+*    DATA ls_movieorder TYPE zsw_movieorder.
+*
+*    LOOP AT me->mt_movieorder
+*      INTO DATA(ls_order).
+*      MOVE-CORRESPONDING ls_order TO ls_movieorder.
+*      ls_movieorder-movieid = me->get_next_id( ).
+*
+*      IF ls_movieorder-movieid IS NOT INITIAL.
+*        INSERT zsw_movieorder FROM ls_movieorder.
+*      ELSE.
+*        "to do logging
+*      ENDIF.
+*      CLEAR ls_movieorder.
+*
+*    ENDLOOP.
+    DATA ls_movie TYPE zsw_movieorder.
+
+    LOOP AT me->mt_movieorder
+      INTO DATA(ls_movieorder).
+      MOVE-CORRESPONDING ls_movieorder TO ls_movie.
+      ls_movie-movieid = me->get_next_id( ).
+
+      IF ls_movieorder-movieid IS NOT INITIAL.
+        INSERT zsw_movieorder FROM ls_movie.
+      ELSE.
+        "to do logging
+      ENDIF.
+      CLEAR ls_movie.
+
+    ENDLOOP.
+  endmethod.
+
+
   METHOD location_determination.
     IF me->mr_input->mv_radbut4_local EQ abap_true.
       return = me->mc_location_local.
@@ -259,15 +385,34 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
 
   METHOD start_app.
 
+*    DATA lt_alvdata TYPE table.
+
     IF me->mr_input->mv_radbut1_moviedata EQ abap_true.
       me->fetch_moviedata_exl( ).
+
+      IF me->mr_input->mv_cb1_alv EQ abap_true.
+        me->display_alv(
+          CHANGING
+            t_table = me->mt_moviedata
+        ).
+      ENDIF.
+
     ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
       me->fetch_movieorder_exl( ).
+
+       IF me->mr_input->mv_cb1_alv EQ abap_true.
+        me->display_alv(
+          CHANGING
+            t_table = me->mt_movieorder
+        ).
+      ENDIF.
+
     ELSEIF me->mr_input->mv_radbut3_moviechar EQ abap_true.
       me->fetch_moviecharacter_exl( ).
     ELSE.
       "other options
     ENDIF.
+
 
   ENDMETHOD.
 

@@ -12,7 +12,9 @@ public section.
       !I_RADIOBUT2 type SEU_RADIOB
       !I_RADIOBUT3 type SEU_RADIOB
       !I_RADIOBUT4 type SEU_RADIOB
-      !I_RADIOBUT5 type SEU_RADIOB .
+      !I_RADIOBUT5 type SEU_RADIOB
+      !I_CHECKBOX1 type RS_XFIELD optional
+      !I_CHECKBOX2 type RS_XFIELD optional .
 protected section.
 private section.
 
@@ -21,6 +23,8 @@ private section.
   data MV_RADBUT3_MOVIECHAR type SEU_RADIOB .
   data MV_RADBUT4_LOCAL type SEU_RADIOB .
   data MV_RADBUT5_SERVER type SEU_RADIOB .
+  data MV_CB1_ALV type RS_XFIELD .
+  data MV_CB2_DEL_MOVIE type RS_XFIELD .
 ENDCLASS.
 
 
@@ -28,13 +32,15 @@ ENDCLASS.
 CLASS ZCL_SW_UPLOADDATA_INPUT IMPLEMENTATION.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    ME->mv_radbut1_moviedata = i_radiobut1.
-    ME->mv_radbut2_movieorder = i_radiobut2.
-    ME->mv_radbut3_moviechar = i_radiobut3.
-    ME->mv_radbut4_local = i_radiobut4.
-    ME->mv_radbut5_server = i_radiobut5.
+    me->mv_radbut1_moviedata  = i_radiobut1.
+    me->mv_radbut2_movieorder = i_radiobut2.
+    me->mv_radbut3_moviechar  = i_radiobut3.
+    me->mv_radbut4_local      = i_radiobut4.
+    me->mv_radbut5_server     = i_radiobut5.
+    me->mv_cb1_alv            = i_checkbox1.
+    me->mv_cb2_del_movie      = i_checkbox2.
 
-  endmethod.
+  ENDMETHOD.
 ENDCLASS.

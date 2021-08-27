@@ -23,9 +23,27 @@
      <LENGTH>17</LENGTH>
     </item>
     <item>
+     <ID>I</ID>
+     <KEY>003</KEY>
+     <ENTRY>Additional options</ENTRY>
+     <LENGTH>28</LENGTH>
+    </item>
+    <item>
      <ID>R</ID>
      <ENTRY>Program ZSW_UPLOAD_DATA</ENTRY>
      <LENGTH>23</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>PA_ALV</KEY>
+     <ENTRY>Display ALV table</ENTRY>
+     <LENGTH>25</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>PA_DEL1</KEY>
+     <ENTRY>Delete table ZSW_MOVIE</ENTRY>
+     <LENGTH>30</LENGTH>
     </item>
     <item>
      <ID>S</ID>

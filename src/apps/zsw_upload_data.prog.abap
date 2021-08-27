@@ -15,9 +15,12 @@ go_input = NEW zcl_sw_uploaddata_input(
   i_radiobut3 = r_but3
   i_radiobut4 = r_but4
   i_radiobut5 = r_but5
+  i_checkbox1 = pa_alv
+  i_checkbox2 = pa_del1
 ).
 
 DATA go_app TYPE REF TO zcl_fetch_moviedata.
+
 
 go_app = NEW zcl_fetch_moviedata( ir_input = go_input ).
 
