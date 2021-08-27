@@ -23,7 +23,6 @@ PRIVATE SECTION.
     END OF ty_moviedata .
   TYPES:
     tty_moviedata TYPE STANDARD TABLE OF ty_moviedata WITH NON-UNIQUE KEY custmovieid .
-
   TYPES:
     BEGIN OF ty_movieorder,
       custmovieid     TYPE string,
@@ -36,6 +35,14 @@ PRIVATE SECTION.
     END OF ty_movieorder .
   TYPES:
     tty_movieorder TYPE STANDARD TABLE OF ty_movieorder WITH NON-UNIQUE KEY custmovieid .
+
+
+  TYPES:
+    BEGIN OF ty_single_custmovid,
+      custmovieid TYPE string,
+    END OF ty_single_custmovid.
+  TYPES:
+    tty_single_custmovieid TYPE STANDARD TABLE OF ty_single_custmovid WITH NON-UNIQUE KEY custmovieid .
 
   DATA mv_location TYPE zsw_datalocation .
   DATA mr_input TYPE REF TO zcl_sw_uploaddata_input .
@@ -78,6 +85,7 @@ PRIVATE SECTION.
     RETURNING
       VALUE(return) TYPE zsw_datalocation .
   METHODS itab2_ddic_movieorder .
+  METHODS determine_new_by_custid .
 ENDCLASS.
 
 
@@ -154,6 +162,25 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
+  METHOD determine_new_by_custid.
+
+    " would work but it would take up a lot of time
+*    LOOP AT me->mt_moviedata
+*      INTO DATA(wa_moviedata).
+*      SELECT SINGLE custmovieid INTO @DATA(lv_custmovieid)
+*               FROM zsw_movie
+*              WHERE custmovieid = @wa_moviedata-custmovieid.
+*
+*    ENDLOOP.
+
+    SELECT custmovieid
+      INTO TABLE @DATA(lt_custmovieid)
+      FROM zsw_movie.
+
+
+  ENDMETHOD.
+
+
   method DISPLAY_ALV.
 
 *    DATA gr_alvtable TYPE REF TO cl_salv_table.
@@ -224,6 +251,8 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
     ENDLOOP.
 
     IF me->mt_moviedata IS NOT INITIAL.
+
+      me->determine_new_by_custid( ).
 
       me->itab2_ddic_moviedata( ).
 

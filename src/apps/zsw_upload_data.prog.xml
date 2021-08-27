@@ -47,6 +47,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>PA_DEL2</KEY>
+     <ENTRY>Delete table ZSW_MOVIEORDER</ENTRY>
+     <LENGTH>35</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>R_BUT1</KEY>
      <ENTRY>movie data</ENTRY>
      <LENGTH>18</LENGTH>

@@ -2,7 +2,8 @@ class ZCL_SW_UPLOADDATA_INPUT definition
   public
   create public
 
-  global friends ZCL_FETCH_MOVIEDATA .
+  global friends ZCL_FETCH_MOVIEDATA
+                 ZCL_SW_DELETEDDIC .
 
 public section.
 
