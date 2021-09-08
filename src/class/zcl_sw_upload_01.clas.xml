@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Uploading data to zsw_movie</DESCRIPT>
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+   </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+     <CMPNAME>FACTORY</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>singleton principle</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+     <CMPNAME>LOCATION_DETERMINATION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Determination of location</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+     <CMPNAME>MC_LOCALMOVIEDATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>location local movied data</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+     <CMPNAME>MC_SERVERMOVIEDATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>location server movie data</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_SW_UPLOAD_01</CLSNAME>
+     <CMPNAME>MR_SINGLETON</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Uploading data to zsw_movie</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

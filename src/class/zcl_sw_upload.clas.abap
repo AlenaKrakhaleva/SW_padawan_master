@@ -1,4 +1,4 @@
-class ZCL_FETCH_MOVIEDATA definition
+class ZCL_SW_UPLOAD definition
   public
   create public .
 
@@ -8,9 +8,10 @@ public section.
     importing
       !IR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT .
   methods FETCH_MOVIEDATA_EXL .
-  methods START_APP .
+  methods START_APP
+    importing
+      !IV_LOCATION type ZSW_DATALOCATION optional .
 protected section.
-private section.
 
   types:
     BEGIN OF ty_moviedata,
@@ -24,9 +25,14 @@ private section.
   types:
     tty_moviedata TYPE STANDARD TABLE OF ty_moviedata WITH NON-UNIQUE KEY custmovieid .
   types:
+    BEGIN OF ty_single_custmovid,
+      custmovieid TYPE string,
+    END OF ty_single_custmovid .
+  types:
+    tty_single_custmovieid TYPE STANDARD TABLE OF ty_single_custmovid WITH NON-UNIQUE KEY custmovieid .
+  types:
     BEGIN OF ty_movieorder,
       custmovieid     TYPE string,
-      movieid         TYPE string,
       filmname        TYPE string,
       episode         TYPE string,
       theatricalorder TYPE string,
@@ -36,51 +42,63 @@ private section.
   types:
     tty_movieorder TYPE STANDARD TABLE OF ty_movieorder WITH NON-UNIQUE KEY custmovieid .
   types:
-    BEGIN OF ty_single_custmovid,
-      custmovieid TYPE string,
-    END OF ty_single_custmovid .
-  types:
-    tty_single_custmovieid TYPE STANDARD TABLE OF ty_single_custmovid WITH NON-UNIQUE KEY custmovieid .
-  types:
-    tty_movie_upload TYPE STANDARD TABLE OF zsw_movie WITH NON-UNIQUE KEY custmovieid .
-  types:
     BEGIN OF ty_id_2columns,
       custmovieid TYPE z_custmovieid,
       movieid     TYPE Z_movieid,
     END OF ty_id_2columns .
   types:
     tty_id_2columns TYPE STANDARD TABLE OF ty_id_2columns WITH NON-UNIQUE KEY custmovieid .
+  types:
+    tty_movieorder_upload TYPE STANDARD TABLE OF zsw_movieorder WITH NON-UNIQUE KEY custmovieid .
+  types:
+    tty_movie_upload TYPE STANDARD TABLE OF zsw_movie WITH NON-UNIQUE KEY custmovieid .
 
   data MV_LOCATION type ZSW_DATALOCATION .
   data MR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT .
   constants MC_LOCATION_LOCAL type ZSW_DATALOCATION value 'L' ##NO_TEXT.
   constants MC_LOCATION_SERVER type ZSW_DATALOCATION value 'S' ##NO_TEXT.
-  constants MC_LOCALMOVIEDATA type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_excel.csv' ##NO_TEXT.
-  constants MC_SERVERMOVIEDATA type STRING value 'NA' ##NO_TEXT.
   data MT_MOVIEDATA type TTY_MOVIEDATA .
+  data MT_ID type TTY_ID_2COLUMNS .
+
+  methods INSERT_DDIC .
+  methods PREPARE_UPDATE_DATA .
+  methods UPDATE_DDIC .
+  methods DATA_UPLOAD
+    importing
+      !IV_FILENAME type STRING
+    returning
+      value(RETURN) type STRING_TABLE .
+  methods DETERMINE_NEW_BY_CUSTID .
+private section.
+
   constants MC_LOCALMOVIEORDER type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_order_excel.csv' ##NO_TEXT.
   constants MC_SERVERMOVIEORDER type STRING value 'NA' ##NO_TEXT.
   data MT_MOVIEORDER type TTY_MOVIEORDER .
   data MT_MOVIEDATA_UPDATE type TTY_MOVIEDATA .
   data MT_MOVIEDATA_INSERT type TTY_MOVIEDATA .
   data MT_MOVIE_UPLOAD type TTY_MOVIE_UPLOAD .
-  data MT_ID type TTY_ID_2COLUMNS .
   data MV_CUSTMOVIEID type Z_CUSTMOVIEID .
+  data MT_MOVIEORDER_UPDATE type TTY_MOVIEORDER .
+  data MT_MOVIEORDER_INSERT type TTY_MOVIEORDER .
+  data MT_MOVIEORDER_UPLOAD type TTY_MOVIEORDER_UPLOAD .
 
+  methods PREPARE_INSERT_DATA_ORDER .
+  methods MOVIEID_DETERMINATION .
+  methods UPDATE_MOVIEORDER_DDIC .
+  methods INSERT_MOVIEORDER_DDIC .
+  methods DETERMINE_NEW_ORDER_BY_CUSTID .
+  methods PREPARE_UPDATE_DATA_ORDER .
   methods PRESERVING_MOVIEID
     importing
       !IV_CUSTMOVIEID type STRING
     returning
       value(RETURN) type Z_MOVIEID .
-  methods INSERT_MOVIEDATA_DDIC .
   methods DATE_CONVERSION
     importing
       !IV_DATE type STRING
     returning
       value(RETURN) type Z_DATE .
   methods PREPARE_INSERT_DATA .
-  methods PREPARE_UPDATE_DATA .
-  methods UPDATE_MOVIEDATA_DDIC .
   methods DISPLAY_ALV
     changing
       !T_TABLE type TABLE .
@@ -88,17 +106,6 @@ private section.
     returning
       value(RETURN) type Z_MOVIEID .
   methods ITAB2_DDIC_MOVIEDATA .
-  methods CONVERSION_BIN2XSTRING
-    importing
-      !IV_FILELENGTH type I
-      !IT_RECORDS type SOLIX_TAB
-    returning
-      value(RETURN) type XSTRING .
-  methods DATA_UPLOAD
-    importing
-      !IV_FILENAME type STRING
-    returning
-      value(RETURN) type STRING_TABLE .
   methods XSTRING_2_ITAB
     importing
       !IV_HEADERXSTRING type XSTRING
@@ -111,44 +118,21 @@ private section.
     returning
       value(RETURN) type ZSW_DATALOCATION .
   methods ITAB2_DDIC_MOVIEORDER .
-  methods DETERMINE_NEW_BY_CUSTID .
 ENDCLASS.
 
 
 
-CLASS ZCL_FETCH_MOVIEDATA IMPLEMENTATION.
+CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
 
-  METHOD constructor.
+  METHOD CONSTRUCTOR.
 
     me->mr_input = ir_input.
 
   ENDMETHOD.
 
 
-  method CONVERSION_BIN2XSTRING.
-
-
-
-CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
-      EXPORTING
-        input_length = iv_filelength
-      IMPORTING
-        buffer       = return
-      TABLES
-        binary_tab   = it_records
-      EXCEPTIONS
-        failed       = 1
-        OTHERS       = 2.
-
-    IF sy-subrc <> 0.
-      " Implement suitable error handling here
-    ENDIF.
-
-  endmethod.
-
-
-  METHOD data_upload.
+  METHOD DATA_UPLOAD.
 
     DATA lt_records TYPE string_table.
 
@@ -188,7 +172,7 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
-  METHOD date_conversion.
+  METHOD DATE_CONVERSION.
 
     DATA lv_convert_date_in(10) TYPE c.
     DATA lv_convert_date_out(10) TYPE c.
@@ -220,7 +204,7 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
-  METHOD determine_new_by_custid.
+  METHOD DETERMINE_NEW_BY_CUSTID.
 
     " would work but it would take up a lot of time
 *    LOOP AT me->mt_moviedata
@@ -248,6 +232,31 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
         APPEND wa_moviedata TO me->mt_moviedata_update.
       ELSE.
         APPEND wa_moviedata TO me->mt_moviedata_insert.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+  METHOD DETERMINE_NEW_ORDER_BY_CUSTID.
+
+    SELECT custmovieid, movieid
+  INTO TABLE @DATA(lt_custmovieid)
+  FROM zsw_movie.
+
+    DATA ls_movie TYPE zsw_movieorder.
+    LOOP AT me->mt_movieorder
+          INTO DATA(wa_moviedata).
+
+      READ TABLE lt_custmovieid
+      WITH KEY custmovieid = wa_moviedata-custmovieid
+      INTO DATA(ls_custmovieid).
+
+      IF sy-subrc EQ 0.
+        APPEND ls_custmovieid TO me->mt_id.
+        APPEND wa_moviedata TO me->mt_movieorder_update.
+      ELSE.
+        APPEND wa_moviedata TO me->mt_movieorder_insert.
       ENDIF.
     ENDLOOP.
 
@@ -289,57 +298,28 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   endmethod.
 
 
-  METHOD fetch_moviedata_exl.
+  METHOD FETCH_MOVIEDATA_EXL.
 
-    DATA lt_records TYPE string_table.
 
-    me->mv_location = me->location_determination( ).
-    CASE me->mv_location.
-      WHEN me->mc_location_local.
-        DATA(lv_filename) = me->mc_localmoviedata.
-      WHEN OTHERS.
-        lv_filename = me->mc_servermoviedata.
-    ENDCASE.
 
-    lt_records = me->data_upload( iv_filename = lv_filename ).
-
-    DATA ls_moviedata TYPE ty_moviedata.
-    DATA lt_moviedata TYPE tty_moviedata.
-
-    LOOP AT lt_records
-      INTO DATA(wa_records)
-   FROM 2.
-      SPLIT wa_records AT ';' INTO:
-      ls_moviedata-custmovieid
-      ls_moviedata-filmname
-      ls_moviedata-episode
-      ls_moviedata-swdate
-      ls_moviedata-headname
-      ls_moviedata-revenue.
-
-      APPEND ls_moviedata TO me->mt_moviedata.
-
-      CLEAR ls_moviedata.
-
-    ENDLOOP.
-
-    IF me->mt_moviedata IS NOT INITIAL.
-
-      me->determine_new_by_custid( ).
-      me->prepare_update_data( ).
-      IF me->mt_movie_upload IS NOT INITIAL.
-        me->update_moviedata_ddic( ).
-      ENDIF.
-      me->prepare_insert_data( ).
-      IF me->mt_movie_upload IS NOT INITIAL.
-        me->insert_moviedata_ddic( ).
-      ENDIF.
-    ENDIF.
-*      me->itab2_ddic_moviedata( ).
+*
+*    IF me->mt_moviedata IS NOT INITIAL.
+*
+*      me->determine_new_by_custid( ).
+*      me->prepare_update_data( ).
+*      IF me->mt_movie_upload IS NOT INITIAL.
+*        me->update_moviedata_ddic( ).
+*      ENDIF.
+*      me->prepare_insert_data( ).
+*      IF me->mt_movie_upload IS NOT INITIAL.
+*        me->insert_moviedata_ddic( ).
+*      ENDIF.
+*    ENDIF.
+**      me->itab2_ddic_moviedata( ).
   ENDMETHOD.
 
 
-  METHOD fetch_movieorder_exl.
+  METHOD FETCH_MOVIEORDER_EXL.
 
     DATA lt_records TYPE string_table.
 
@@ -375,14 +355,21 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
 
     IF me->mt_movieorder IS NOT INITIAL.
 
-      me->itab2_ddic_movieorder( ).
-
+      me->determine_new_order_by_custid( ).
+      me->prepare_update_data_order( ).
+      IF me->mt_movieorder_upload IS NOT INITIAL.
+        me->update_movieorder_ddic( ).
+      ENDIF.
+      me->prepare_insert_data( ).
+      IF me->mt_movieorder_upload IS NOT INITIAL.
+        me->insert_movieorder_ddic( ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
 
 
-  METHOD get_next_id.
+  METHOD GET_NEXT_ID.
 
     DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '1'.
     DATA lv_object              TYPE inri-object    VALUE 'ZSW_MOVIE'.
@@ -419,7 +406,7 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
-  METHOD insert_moviedata_ddic.
+  METHOD INSERT_DDIC.
 
     INSERT zsw_movie FROM TABLE me->mt_movie_upload.
     REFRESH me->mt_movie_upload[].
@@ -427,7 +414,13 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
-  METHOD itab2_ddic_moviedata.
+  METHOD INSERT_MOVIEORDER_DDIC.
+    INSERT zsw_movieorder FROM TABLE me->mt_movieorder_upload.
+    REFRESH me->mt_movieorder_upload[].
+  ENDMETHOD.
+
+
+  METHOD ITAB2_DDIC_MOVIEDATA.
 
     DATA ls_movie TYPE zsw_movie.
 
@@ -473,9 +466,9 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
     LOOP AT me->mt_movieorder
       INTO DATA(ls_movieorder).
       MOVE-CORRESPONDING ls_movieorder TO ls_movie.
-      ls_movie-movieid = me->get_next_id( ).
+      ls_movie-movieid = me->preserving_movieid( iv_custmovieid = ls_movieorder-custmovieid ).
 
-      IF ls_movieorder-movieid IS NOT INITIAL.
+      IF ls_movie-movieid IS NOT INITIAL.
         INSERT zsw_movieorder FROM ls_movie.
       ELSE.
         "to do logging
@@ -486,7 +479,7 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   endmethod.
 
 
-  METHOD location_determination.
+  METHOD LOCATION_DETERMINATION.
     IF me->mr_input->mv_radbut4_local EQ abap_true.
       return = me->mc_location_local.
     ELSEIF me->mr_input->mv_radbut5_server EQ abap_true.
@@ -497,34 +490,60 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
+  method MOVIEID_DETERMINATION.
+
+  endmethod.
+
+
   method PREPARE_INSERT_DATA.
 
    DATA ls_movie TYPE zsw_movie.
     LOOP AT me->mt_moviedata_insert
-      INTO DATA(ls_insert).
-      MOVE-CORRESPONDING ls_insert TO ls_movie.
-      ls_movie-swdate = me->date_conversion( iv_date = ls_insert-swdate ).
+      INTO DATA(ls_update).
+      MOVE-CORRESPONDING ls_update TO ls_movie.
       ls_movie-movieid = me->get_next_id( ).
-      ls_movie-currency = 'USD'.
-      APPEND ls_movie TO me->mt_movie_upload.
+      append ls_movie TO me->mt_movie_upload.
     ENDLOOP.
 
   endmethod.
 
 
-  METHOD prepare_update_data.
-    DATA ls_movie TYPE zsw_movie.
-    LOOP AT me->mt_moviedata_update
+  method PREPARE_INSERT_DATA_ORDER.
+
+     DATA ls_movie TYPE zsw_movieorder.
+    LOOP AT me->mt_movieorder_insert
       INTO DATA(ls_update).
       MOVE-CORRESPONDING ls_update TO ls_movie.
-      ls_movie-swdate = me->date_conversion( iv_date = ls_update-swdate ).
       ls_movie-movieid = me->preserving_movieid( iv_custmovieid = ls_update-custmovieid ).
-      append ls_movie TO me->mt_movie_upload.
+      append ls_movie TO me->mt_movieorder_upload.
     ENDLOOP.
+  endmethod.
+
+
+  METHOD PREPARE_UPDATE_DATA.
+*    DATA ls_movie TYPE zsw_movie.
+*    LOOP AT me->mt_moviedata_update
+*      INTO DATA(ls_update).
+*      MOVE-CORRESPONDING ls_update TO ls_movie.
+*      ls_movie-swdate = me->date_conversion( iv_date = ls_update-swdate ).
+*      ls_movie-movieid = me->preserving_movieid( iv_custmovieid = ls_update-custmovieid ).
+*      append ls_movie TO me->mt_movie_upload.
+*    ENDLOOP.
   ENDMETHOD.
 
 
-  METHOD preserving_movieid.
+  method PREPARE_UPDATE_DATA_ORDER.
+    DATA ls_movie TYPE zsw_movieorder.
+    LOOP AT me->mt_movieorder_update
+      INTO DATA(ls_update).
+      MOVE-CORRESPONDING ls_update TO ls_movie.
+      ls_movie-movieid = me->preserving_movieid( iv_custmovieid = ls_update-custmovieid ).
+      append ls_movie TO me->mt_movieorder_upload.
+    ENDLOOP.
+  endmethod.
+
+
+  METHOD PRESERVING_MOVIEID.
 
     READ TABLE me->mt_id
          WITH KEY custmovieid = iv_custmovieid
@@ -541,39 +560,43 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
 
   METHOD start_app.
 
-*    DATA lt_alvdata TYPE table.
+    DATA lt_records TYPE string_table.
+
+   me->mv_location = me->location_determination( ).
 
     IF me->mr_input->mv_radbut1_moviedata EQ abap_true.
-      me->fetch_moviedata_exl( ).
 
-      IF me->mr_input->mv_cb1_alv EQ abap_true.
-        me->display_alv(
-          CHANGING
-            t_table = me->mt_moviedata
-        ).
-      ENDIF.
+      DATA(lr_sub_01) = zcl_sw_upload_01=>factory( me->mr_input ).
 
-    ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
-      me->fetch_movieorder_exl( ).
+      lr_sub_01->start_app(
+          iv_location = me->mv_location
+      ).
 
-       IF me->mr_input->mv_cb1_alv EQ abap_true.
-        me->display_alv(
-          CHANGING
-            t_table = me->mt_movieorder
-        ).
-      ENDIF.
-
-    ELSEIF me->mr_input->mv_radbut3_moviechar EQ abap_true.
-      me->fetch_moviecharacter_exl( ).
-    ELSE.
-      "other options
+*      me->fetch_moviedata_exl( ).
+*      IF me->mr_input->mv_cb1_alv EQ abap_true.
+*        me->display_alv(
+*          CHANGING
+*            t_table = me->mt_moviedata
+*        ).
+*      ENDIF.
+*    ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
+*      me->fetch_movieorder_exl( ).
+*      IF me->mr_input->mv_cb1_alv EQ abap_true.
+*        me->display_alv(
+*          CHANGING
+*            t_table = me->mt_movieorder
+*        ).
+*      ENDIF.
+*    ELSEIF me->mr_input->mv_radbut3_moviechar EQ abap_true.
+*      me->fetch_moviecharacter_exl( ).
+*    ELSE.
+*      "other options
     ENDIF.
-
 
   ENDMETHOD.
 
 
-  METHOD update_moviedata_ddic.
+  METHOD UPDATE_DDIC.
 
     UPDATE zsw_movie FROM TABLE me->mt_movie_upload.
     REFRESH me->mt_movie_upload[].
@@ -581,7 +604,13 @@ CALL FUNCTION 'SCMS_BINARY_TO_XSTRING'
   ENDMETHOD.
 
 
-  METHOD xstring_2_itab.
+  method UPDATE_MOVIEORDER_DDIC.
+       UPDATE zsw_movieorder FROM TABLE me->mt_movieorder_upload.
+    REFRESH me->mt_movieorder_upload[].
+  endmethod.
+
+
+  METHOD XSTRING_2_ITAB.
 
     DATA : lo_excel_ref TYPE REF TO cl_fdt_xl_spreadsheet .
     FIELD-SYMBOLS <gt_data> TYPE STANDARD TABLE .

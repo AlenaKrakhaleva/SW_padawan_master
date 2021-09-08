@@ -2,7 +2,7 @@ class ZCL_SW_UPLOADDATA_INPUT definition
   public
   create public
 
-  global friends ZCL_FETCH_MOVIEDATA
+  global friends ZCL_SW_UPLOAD
                  ZCL_SW_DELETEDDIC .
 
 public section.
@@ -15,7 +15,8 @@ public section.
       !I_RADIOBUT4 type SEU_RADIOB
       !I_RADIOBUT5 type SEU_RADIOB
       !I_CHECKBOX1 type RS_XFIELD optional
-      !I_CHECKBOX2 type RS_XFIELD optional .
+      !I_CHECKBOX2 type RS_XFIELD optional
+      !I_CHECKBOX3 type RS_XFIELD optional .
 protected section.
 private section.
 
@@ -26,6 +27,7 @@ private section.
   data MV_RADBUT5_SERVER type SEU_RADIOB .
   data MV_CB1_ALV type RS_XFIELD .
   data MV_CB2_DEL_MOVIE type RS_XFIELD .
+  data MV_CB3_DEL_MOVIEORDER type RS_XFIELD .
 ENDCLASS.
 
 
@@ -42,6 +44,7 @@ CLASS ZCL_SW_UPLOADDATA_INPUT IMPLEMENTATION.
     me->mv_radbut5_server     = i_radiobut5.
     me->mv_cb1_alv            = i_checkbox1.
     me->mv_cb2_del_movie      = i_checkbox2.
+    me->mv_cb3_del_movieorder = i_checkbox3.
 
   ENDMETHOD.
 ENDCLASS.
