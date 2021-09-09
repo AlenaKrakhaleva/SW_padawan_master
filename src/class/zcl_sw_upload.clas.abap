@@ -4,13 +4,11 @@ class ZCL_SW_UPLOAD definition
 
 public section.
 
-  methods CONSTRUCTOR
-    importing
-      !IR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT .
-  methods FETCH_MOVIEDATA_EXL .
+  methods CONSTRUCTOR .
   methods START_APP
     importing
-      !IV_LOCATION type ZSW_DATALOCATION optional .
+      !IR_INPUT type ref to ZCL_SW_UPLOADDATA_INPUT optional
+      !IR_APP type ref to ZCL_SW_UPLOAD optional .
 protected section.
 
   types:
@@ -59,8 +57,20 @@ protected section.
   constants MC_LOCATION_SERVER type ZSW_DATALOCATION value 'S' ##NO_TEXT.
   data MT_MOVIEDATA type TTY_MOVIEDATA .
   data MT_ID type TTY_ID_2COLUMNS .
+  data MR_SUPER type ref to ZCL_SW_UPLOAD .
 
+  methods PRESERVING_MOVIEID
+    importing
+      !IV_CUSTMOVIEID type STRING
+    returning
+      value(RETURN) type Z_MOVIEID .
   methods INSERT_DDIC .
+  methods DATE_CONVERSION
+    importing
+      !IV_DATE type STRING
+    returning
+      value(RETURN) type Z_DATE .
+  methods PREPARE_INSERT_DATA .
   methods PREPARE_UPDATE_DATA .
   methods UPDATE_DDIC .
   methods DATA_UPLOAD
@@ -88,17 +98,6 @@ private section.
   methods INSERT_MOVIEORDER_DDIC .
   methods DETERMINE_NEW_ORDER_BY_CUSTID .
   methods PREPARE_UPDATE_DATA_ORDER .
-  methods PRESERVING_MOVIEID
-    importing
-      !IV_CUSTMOVIEID type STRING
-    returning
-      value(RETURN) type Z_MOVIEID .
-  methods DATE_CONVERSION
-    importing
-      !IV_DATE type STRING
-    returning
-      value(RETURN) type Z_DATE .
-  methods PREPARE_INSERT_DATA .
   methods DISPLAY_ALV
     changing
       !T_TABLE type TABLE .
@@ -127,7 +126,7 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
   METHOD CONSTRUCTOR.
 
-    me->mr_input = ir_input.
+*    me->mr_input = ir_input.
 
   ENDMETHOD.
 
@@ -298,27 +297,6 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
   endmethod.
 
 
-  METHOD FETCH_MOVIEDATA_EXL.
-
-
-
-*
-*    IF me->mt_moviedata IS NOT INITIAL.
-*
-*      me->determine_new_by_custid( ).
-*      me->prepare_update_data( ).
-*      IF me->mt_movie_upload IS NOT INITIAL.
-*        me->update_moviedata_ddic( ).
-*      ENDIF.
-*      me->prepare_insert_data( ).
-*      IF me->mt_movie_upload IS NOT INITIAL.
-*        me->insert_moviedata_ddic( ).
-*      ENDIF.
-*    ENDIF.
-**      me->itab2_ddic_moviedata( ).
-  ENDMETHOD.
-
-
   METHOD FETCH_MOVIEORDER_EXL.
 
     DATA lt_records TYPE string_table.
@@ -371,37 +349,37 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
   METHOD GET_NEXT_ID.
 
-    DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '1'.
-    DATA lv_object              TYPE inri-object    VALUE 'ZSW_MOVIE'.
-    DATA lv_retcode             TYPE inri-returncode.
-    DATA lv_number TYPE I.
-
-    CALL FUNCTION 'NUMBER_GET_NEXT'
-      EXPORTING
-        nr_range_nr             = lv_nr_range_nr
-        object                  = lv_object
-*       QUANTITY                = '1'
-*       SUBOBJECT               = ' '
-*       TOYEAR                  = '0000'
-*       IGNORE_BUFFER           = ' '
-      IMPORTING
-        number                  = lv_number
-*       QUANTITY                =
-        returncode              = lv_retcode
-      EXCEPTIONS
-        interval_not_found      = 1
-        number_range_not_intern = 2
-        object_not_found        = 3
-        quantity_is_0           = 4
-        quantity_is_not_1       = 5
-        interval_overflow       = 6
-        buffer_overflow         = 7
-        OTHERS                  = 8.
-    IF sy-subrc <> 0.
-* Implement suitable error handling here
-    ELSE.
-      return = lv_number.
-    ENDIF.
+*    DATA lv_nr_range_nr         TYPE inri-nrrangenr VALUE '1'.
+*    DATA lv_object              TYPE inri-object    VALUE 'ZSW_MOVIE'.
+*    DATA lv_retcode             TYPE inri-returncode.
+*    DATA lv_number TYPE I.
+*
+*    CALL FUNCTION 'NUMBER_GET_NEXT'
+*      EXPORTING
+*        nr_range_nr             = lv_nr_range_nr
+*        object                  = lv_object
+**       QUANTITY                = '1'
+**       SUBOBJECT               = ' '
+**       TOYEAR                  = '0000'
+**       IGNORE_BUFFER           = ' '
+*      IMPORTING
+*        number                  = lv_number
+**       QUANTITY                =
+*        returncode              = lv_retcode
+*      EXCEPTIONS
+*        interval_not_found      = 1
+*        number_range_not_intern = 2
+*        object_not_found        = 3
+*        quantity_is_0           = 4
+*        quantity_is_not_1       = 5
+*        interval_overflow       = 6
+*        buffer_overflow         = 7
+*        OTHERS                  = 8.
+*    IF sy-subrc <> 0.
+** Implement suitable error handling here
+*    ELSE.
+*      return = lv_number.
+*    ENDIF.
 
   ENDMETHOD.
 
@@ -560,25 +538,31 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
   METHOD start_app.
 
-    DATA lt_records TYPE string_table.
+    me->mr_input = ir_input.
+    me->mr_super = ir_app.
+
+*    DATA lt_records TYPE string_table.
 
    me->mv_location = me->location_determination( ).
 
     IF me->mr_input->mv_radbut1_moviedata EQ abap_true.
 
-      DATA(lr_sub_01) = zcl_sw_upload_01=>factory( me->mr_input ).
+      DATA(lr_sub_01) = zcl_sw_upload_01=>factory( ).
 
       lr_sub_01->start_app(
-          iv_location = me->mv_location
+        EXPORTING
+*          ir_input =                  " Input data
+          ir_app   =   me->mr_super              " Fetching SW data
       ).
 
-*      me->fetch_moviedata_exl( ).
-*      IF me->mr_input->mv_cb1_alv EQ abap_true.
-*        me->display_alv(
-*          CHANGING
-*            t_table = me->mt_moviedata
-*        ).
-*      ENDIF.
+
+      IF me->mr_input->mv_cb1_alv EQ abap_true.
+        me->display_alv(
+          CHANGING
+            t_table = me->mt_moviedata
+        ).
+      ENDIF.
+
 *    ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
 *      me->fetch_movieorder_exl( ).
 *      IF me->mr_input->mv_cb1_alv EQ abap_true.
