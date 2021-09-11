@@ -59,6 +59,7 @@ protected section.
   data MT_ID type TTY_ID_2COLUMNS .
   data MR_SUPER type ref to ZCL_SW_UPLOAD .
 
+  methods FETCH_EXISTING_MOVIE_ID .
   methods PRESERVING_MOVIEID
     importing
       !IV_CUSTMOVIEID type STRING
@@ -73,12 +74,17 @@ protected section.
   methods PREPARE_INSERT_DATA .
   methods PREPARE_UPDATE_DATA .
   methods UPDATE_DDIC .
+  methods DISPLAY_ALV
+    changing
+      !T_TABLE type TABLE .
   methods DATA_UPLOAD
     importing
       !IV_FILENAME type STRING
     returning
       value(RETURN) type STRING_TABLE .
   methods DETERMINE_NEW_BY_CUSTID .
+  methods MODIFY_DDIC_TABLE .
+  methods PREPARE_MODIFY_DATA .
 private section.
 
   constants MC_LOCALMOVIEORDER type STRING value 'C:\Users\akrakhal\Desktop\SW_PROJECT\sw_movies_order_excel.csv' ##NO_TEXT.
@@ -98,9 +104,6 @@ private section.
   methods INSERT_MOVIEORDER_DDIC .
   methods DETERMINE_NEW_ORDER_BY_CUSTID .
   methods PREPARE_UPDATE_DATA_ORDER .
-  methods DISPLAY_ALV
-    changing
-      !T_TABLE type TABLE .
   methods GET_NEXT_ID
     returning
       value(RETURN) type Z_MOVIEID .
@@ -293,6 +296,13 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
   endmethod.
 
 
+  method FETCH_EXISTING_MOVIE_ID.
+     SELECT custmovieid movieid
+      INTO TABLE me->mt_id
+      FROM zsw_movie.
+  endmethod.
+
+
   method FETCH_MOVIECHARACTER_EXL.
   endmethod.
 
@@ -468,6 +478,10 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
   ENDMETHOD.
 
 
+  method MODIFY_DDIC_TABLE.
+  endmethod.
+
+
   method MOVIEID_DETERMINATION.
 
   endmethod.
@@ -498,6 +512,10 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
   endmethod.
 
 
+  method PREPARE_MODIFY_DATA.
+  endmethod.
+
+
   METHOD PREPARE_UPDATE_DATA.
 *    DATA ls_movie TYPE zsw_movie.
 *    LOOP AT me->mt_moviedata_update
@@ -523,7 +541,7 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
   METHOD PRESERVING_MOVIEID.
 
-    READ TABLE me->mt_id
+    READ TABLE me->mr_super->mt_id
          WITH KEY custmovieid = iv_custmovieid
          INTO DATA(ls_custmovieid).
 
@@ -542,8 +560,8 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
     me->mr_super = ir_app.
 
 *    DATA lt_records TYPE string_table.
-
-   me->mv_location = me->location_determination( ).
+    me->fetch_existing_movie_id( ).
+    me->mv_location = me->location_determination( ).
 
     IF me->mr_input->mv_radbut1_moviedata EQ abap_true.
 
@@ -551,17 +569,25 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 
       lr_sub_01->start_app(
         EXPORTING
-*          ir_input =                  " Input data
+*         ir_input =    me->mr_input              " Input data
           ir_app   =   me->mr_super              " Fetching SW data
       ).
+    ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
+      DATA(lr_sub_02) = zcl_sw_upload_02=>factory( ).
 
+      lr_sub_02->start_app(
+        EXPORTING
+*         ir_input =    me->mr_input              " Input data
+          ir_app   =   me->mr_super              " Fetching SW data
+      ).
+    ENDIF.
 
-      IF me->mr_input->mv_cb1_alv EQ abap_true.
-        me->display_alv(
-          CHANGING
-            t_table = me->mt_moviedata
-        ).
-      ENDIF.
+*      IF me->mr_input->mv_cb1_alv EQ abap_true.
+*        me->display_alv(
+*          CHANGING
+*            t_table = me->mt_moviedata
+*        ).
+*      ENDIF.
 
 *    ELSEIF me->mr_input->mv_radbut2_movieorder EQ abap_true.
 *      me->fetch_movieorder_exl( ).
@@ -575,7 +601,7 @@ CLASS ZCL_SW_UPLOAD IMPLEMENTATION.
 *      me->fetch_moviecharacter_exl( ).
 *    ELSE.
 *      "other options
-    ENDIF.
+*    ENDIF.
 
   ENDMETHOD.
 

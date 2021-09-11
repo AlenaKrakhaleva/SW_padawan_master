@@ -84,20 +84,20 @@ CLASS ZCL_SW_UPLOAD_01 IMPLEMENTATION.
   method DETERMINE_NEW_BY_CUSTID.
 *CALL METHOD SUPER->DETERMINE_NEW_BY_CUSTID
 *    .
-    SELECT custmovieid, movieid
-      INTO TABLE @DATA(lt_custmovieid)
-      FROM zsw_movie.
+*    SELECT custmovieid, movieid
+*      INTO TABLE @DATA(lt_custmovieid)
+*      FROM zsw_movie.
 
     DATA ls_movie TYPE zsw_movie.
     LOOP AT me->mt_moviedata
           INTO DATA(wa_moviedata).
 
-      READ TABLE lt_custmovieid
+      READ TABLE me->mr_super->mt_id
       WITH KEY custmovieid = wa_moviedata-custmovieid
       INTO DATA(ls_custmovieid).
 
       IF sy-subrc EQ 0.
-        APPEND ls_custmovieid TO me->mt_id.
+*        APPEND ls_custmovieid TO me->mt_id.
         APPEND wa_moviedata TO me->mt_moviedata_update.
       ELSE.
         APPEND wa_moviedata TO me->mt_moviedata_insert.
@@ -205,7 +205,7 @@ CLASS ZCL_SW_UPLOAD_01 IMPLEMENTATION.
 
   method PRESERVING_MOVIEID.
 
-    READ TABLE me->mt_id
+    READ TABLE me->mr_super->mt_id
          WITH KEY custmovieid = iv_custmovieid
          INTO DATA(ls_custmovieid).
 
@@ -222,6 +222,7 @@ CLASS ZCL_SW_UPLOAD_01 IMPLEMENTATION.
 *CALL METHOD SUPER->START_APP
 *    .
     me->mr_super = ir_app.
+*    me->mr_input = ir_input.
 
     CASE me->mr_super->mv_location.
       WHEN me->mc_location_local.
@@ -265,6 +266,12 @@ CLASS ZCL_SW_UPLOAD_01 IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
+    IF me->mr_super->mr_input->mv_cb1_alv EQ abap_true.
+        me->display_alv(
+          CHANGING
+            t_table = me->mt_moviedata
+        ).
+      ENDIF.
 
   ENDMETHOD.
 
